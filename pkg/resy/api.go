@@ -125,7 +125,7 @@ func (c *client) FindReservation(venue Venue, day time.Time, partySize int) (fou
 }
 
 func (c *client) GetReservationDetails(partySize int, day time.Time, configToken string) (v ReservationDetailsResponse, err error) {
-	if !c.authToken.isValid() { // TODO(check expiry)
+	if !c.authToken.isValid() {
 		logrus.Debug("auth token is invalid, refreshing")
 		if err = c.refreshToken(); err != nil {
 			err = fmt.Errorf("unbale to refresh auth token: %s", err)
@@ -143,7 +143,7 @@ func (c *client) GetReservationDetails(partySize int, day time.Time, configToken
 }
 
 func (c *client) BookReservation(bookToken string) (v ReservationResponse, err error) {
-	if !c.authToken.isValid() { // TODO(check expiry)
+	if !c.authToken.isValid() {
 		logrus.Debug("auth token is invalid, refreshing")
 		if err = c.refreshToken(); err != nil {
 			err = fmt.Errorf("unbale to refresh auth token: %s", err)

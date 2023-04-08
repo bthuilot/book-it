@@ -21,16 +21,16 @@ var args struct {
 }
 
 func init() {
-	args.venueID = rootCmd.PersistentFlags().IntP("venue-id", "v", -1, "ID of the venue you want to reserve from ")
+	args.venueID = rootCmd.PersistentFlags().IntP("venue-id", "v", 0, "ID of the venue you want to reserve from ")
 
-	args.date = rootCmd.PersistentFlags().StringP("date", "d", "", "")
+	args.date = rootCmd.PersistentFlags().StringP("date", "d", "", "The date of when to book in 'mm/dd/yy' format")
 
-	args.partySize = rootCmd.PersistentFlags().IntP("party-size", "p", -1, "")
+	args.partySize = rootCmd.PersistentFlags().IntP("party-size", "p", 0, "the amount of people the reservation should be for")
 
-	args.types = rootCmd.PersistentFlags().StringArray("include-types", nil, "")
-	args.time = rootCmd.PersistentFlags().StringP("time", "t", "", "")
+	args.types = rootCmd.PersistentFlags().StringArray("include-types", nil, "filter for what types of reservations to include, i.e. Booth, Outdoor, etc. Must match exact name shown on Resy")
+	args.time = rootCmd.PersistentFlags().StringP("time", "t", "", "The time to make the reservation for in kitchen time format (i.e. 3:04PM)")
 
-	args.timeSpread = rootCmd.PersistentFlags().IntP("time-spread", "s", 0, "")
+	args.timeSpread = rootCmd.PersistentFlags().IntP("time-spread", "s", 0, "The 'spread' of acceptable times. When set, the program will consider times within this duration of seconds from the targeted time to be acceptable reservations")
 
 }
 

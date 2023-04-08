@@ -2,21 +2,18 @@ package config
 
 import (
 	"github.com/sirupsen/logrus"
-	"net/http"
+	"github.com/spf13/viper"
+	"os"
 )
 
 func InitLogger() {
 	logrus.SetLevel(logrus.DebugLevel)
-	//
-	//	log, err := os.Create("/Users/bryce/output.log")
-	//	if err != nil {
-	//		logrus.Fatalf("unable to open log file: %s", err)
-	//	}
-	//	if os.Getenv("USE_STDOUT") != "1" {
-	//		logrus.SetOutput(log)
-	//	}
-}
-
-func LogHTTPRequest(r *http.Request) {
-	// TODO(this)
+	if viper.IsSet("log_file") {
+		logFile := viper.GetString("log_file")
+		log, err := os.Create(logFile)
+		if err != nil {
+			logrus.Fatalf("unable to open log file: %s", err)
+		}
+		logrus.SetOutput(log)
+	}
 }

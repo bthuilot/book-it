@@ -102,6 +102,10 @@ type FindResponse struct {
  * Reservation endpoints responses
  */
 
+type ReservationTime struct {
+	time.Time
+}
+
 type ReservationBookToken struct {
 	Expires ReservationTime `json:"expires"`
 	Value   string          `json:"value"`

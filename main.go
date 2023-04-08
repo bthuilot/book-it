@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/bthuilot/book-it/pkg/cmd"
+	"github.com/bthuilot/book-it/cmd"
 )
 
 func main() {
