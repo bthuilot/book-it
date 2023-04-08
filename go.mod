@@ -1,4 +1,4 @@
-module github.com/bthuilot/resy-booker-go
+module github.com/bthuilot/book-it
 
 go 1.18
 

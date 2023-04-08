@@ -50,11 +50,13 @@ type VenueIDs struct {
 }
 
 type Venue struct {
+	// TODO(name)
+	Name     string   `json:"name"`
 	IDs      VenueIDs `json:"id"`
 	Location Location `json:"location"`
 }
 
-type slotConfig struct {
+type SlotConfig struct {
 	Type  string `json:"type"`
 	Token string `json:"token"`
 }
@@ -72,27 +74,27 @@ func (t *reservationDate) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-type reservationDuration struct {
-	start reservationDate
-	end   reservationDate
+type ReservationDuration struct {
+	Start reservationDate
+	End   reservationDate
 }
 
-type reservationSlot struct {
-	Config slotConfig          `json:"config"`
-	Date   reservationDuration `json:"date"`
+type ReservationSlot struct {
+	Config SlotConfig          `json:"config"`
+	Date   ReservationDuration `json:"date"`
 }
 
-type foundVenue struct {
+type FoundVenue struct {
 	Venue Venue             `json:"venue"`
-	Slots []reservationSlot `json:"slots"`
+	Slots []ReservationSlot `json:"slots"`
 }
 
-type findResult struct {
-	Venues []foundVenue `json:"venues"`
+type FindResult struct {
+	Venues []FoundVenue `json:"venues"`
 }
 
-type findResponse struct {
-	Results    findResult `json:"results"`
+type FindResponse struct {
+	Results    FindResult `json:"results"`
 	GuestToken string     `json:"guest_token"`
 }
 
@@ -100,15 +102,15 @@ type findResponse struct {
  * Reservation endpoints responses
  */
 
-type reservationBookToken struct {
+type ReservationBookToken struct {
 	Expires ReservationTime `json:"expires"`
 	Value   string          `json:"value"`
 }
 
-type reservationDetailsResponse struct {
-	BookToken reservationBookToken `json:"book_token"`
+type ReservationDetailsResponse struct {
+	BookToken ReservationBookToken `json:"book_token"`
 }
 
-type reservationResponse struct {
+type ReservationResponse struct {
 	ResyToken string `json:"resy_token"`
 }

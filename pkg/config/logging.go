@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/sirupsen/logrus"
+	"net/http"
 )
 
 func InitLogger() {
@@ -14,4 +15,8 @@ func InitLogger() {
 	//	if os.Getenv("USE_STDOUT") != "1" {
 	//		logrus.SetOutput(log)
 	//	}
+}
+
+func LogHTTPRequest(r *http.Request) {
+	// TODO(this)
 }

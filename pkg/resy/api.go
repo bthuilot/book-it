@@ -13,15 +13,15 @@ import (
 	"time"
 )
 
-type Client interface {
+type APIClient interface {
 	// GetVenue will return a Venue by its id
 	GetVenue(id int) (v Venue, err error)
 	// FindReservation will find all reservations for a given day
-	FindReservation(venue Venue, day time.Time, partySize int) (found findResponse, err error)
+	FindReservation(venue Venue, day time.Time, partySize int) (found FindResponse, err error)
 	// GetReservationDetails will return the reservation details for a given reservation config token
-	GetReservationDetails(partySize int, day time.Time, configToken string) (v reservationDetailsResponse, err error)
+	GetReservationDetails(partySize int, day time.Time, configToken string) (v ReservationDetailsResponse, err error)
 	// BookReservation will book a reservation from its bookToken
-	BookReservation(bookToken string) (v reservationResponse, err error)
+	BookReservation(bookToken string) (v ReservationResponse, err error)
 }
 
 type client struct {
@@ -41,7 +41,7 @@ const (
 	resultLimit = 20
 )
 
-func NewClient() (Client, error) {
+func NewClient() (APIClient, error) {
 	c := &client{
 		email:    viper.GetString("email"),
 		password: viper.GetString("password"),
@@ -50,7 +50,7 @@ func NewClient() (Client, error) {
 	return c, err
 }
 
-func makeResyAPIRequest[T any](method, endpoint, authToken string, queryParams, formParams url.Values) (resp T, err error) {
+func apiRequest[T any](method, endpoint, authToken string, queryParams, formParams url.Values) (resp T, err error) {
 	var (
 		httpReq *http.Request
 		httpRes *http.Response
@@ -99,11 +99,11 @@ func makeResyAPIRequest[T any](method, endpoint, authToken string, queryParams, 
 func (c *client) GetVenue(id int) (v Venue, err error) {
 	data := url.Values{}
 	data.Set("id", strconv.Itoa(id))
-	v, err = makeResyAPIRequest[Venue]("GET", "3/venue", "", data, url.Values{})
+	v, err = apiRequest[Venue]("GET", "3/venue", "", data, url.Values{})
 	return
 }
 
-func (c *client) FindReservation(venue Venue, day time.Time, partySize int) (found findResponse, err error) {
+func (c *client) FindReservation(venue Venue, day time.Time, partySize int) (found FindResponse, err error) {
 	if !c.authToken.isValid() {
 		logrus.Debug("auth token is invalid, refreshing")
 		if err = c.refreshToken(); err != nil {
@@ -120,11 +120,11 @@ func (c *client) FindReservation(venue Venue, day time.Time, partySize int) (fou
 	data.Set("venue_id", strconv.Itoa(venue.IDs.Resy))
 	data.Set("limit", strconv.Itoa(resultLimit))
 
-	found, err = makeResyAPIRequest[findResponse]("GET", "4/find", c.authToken.raw, data, url.Values{})
+	found, err = apiRequest[FindResponse]("GET", "4/find", c.authToken.raw, data, url.Values{})
 	return
 }
 
-func (c *client) GetReservationDetails(partySize int, day time.Time, configToken string) (v reservationDetailsResponse, err error) {
+func (c *client) GetReservationDetails(partySize int, day time.Time, configToken string) (v ReservationDetailsResponse, err error) {
 	if !c.authToken.isValid() { // TODO(check expiry)
 		logrus.Debug("auth token is invalid, refreshing")
 		if err = c.refreshToken(); err != nil {
@@ -138,11 +138,11 @@ func (c *client) GetReservationDetails(partySize int, day time.Time, configToken
 	data.Set("day", day.Format("2006-01-02"))
 	data.Set("config_id", configToken)
 
-	v, err = makeResyAPIRequest[reservationDetailsResponse]("GET", "3/details", c.authToken.raw, data, url.Values{})
+	v, err = apiRequest[ReservationDetailsResponse]("GET", "3/details", c.authToken.raw, data, url.Values{})
 	return
 }
 
-func (c *client) BookReservation(bookToken string) (v reservationResponse, err error) {
+func (c *client) BookReservation(bookToken string) (v ReservationResponse, err error) {
 	if !c.authToken.isValid() { // TODO(check expiry)
 		logrus.Debug("auth token is invalid, refreshing")
 		if err = c.refreshToken(); err != nil {
@@ -156,6 +156,6 @@ func (c *client) BookReservation(bookToken string) (v reservationResponse, err e
 	// TODO(reverse engineer how payment method is retrieved)
 	data.Set("struct_payment_method", "{\"id\": 9313397}")
 	data.Set("source_id", "resy.com-venue-details")
-	v, err = makeResyAPIRequest[reservationResponse]("POST", "3/book", c.authToken.raw, url.Values{}, data)
+	v, err = apiRequest[ReservationResponse]("POST", "3/book", c.authToken.raw, url.Values{}, data)
 	return
 }
