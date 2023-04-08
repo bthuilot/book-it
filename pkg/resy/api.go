@@ -90,7 +90,7 @@ func apiRequest[T any](method, endpoint, authToken string, queryParams, formPara
 		logrus.Fatalf("unable to read body: %s", err)
 		return
 	}
-	logrus.Debugf("recieved response from API: %s", string(body))
+	logrus.Debugf("received response from API: %s", string(body))
 	err = json.Unmarshal(body, &resp)
 	logrus.Debugf("received response: %+v", resp)
 	return

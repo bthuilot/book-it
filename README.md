@@ -1,5 +1,7 @@
 #  `book-it` - Go Command Line Reservation Tool
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/bthuilot/book-it)](https://goreportcard.com/report/github.com/bthuilot/book-it)
+
 Book-It is a command line tool written in Go that allows users to book reservations via the Resy API.
 This tool aims to allow you to book at those hard-to-get restaurants!
 
@@ -9,7 +11,7 @@ Currently, the program needs to be compiled locally
 by cloning this repo and running `go build`
 
 ```shell
-# Clone the repoository
+# Clone the repository
 git clone github.com/bthuilot/book-it
 # cd into cloned repository
 cd book-it
@@ -19,7 +21,12 @@ go build -o book-it
 
 ## Usage
 
-To use book-it, run the `book-it` command with the required flags:
+To use book-it, first export the following variables for authentication:
+
+- `RESY_EMAIL` : The email address associated with your Resy account
+- `RESY_PASSWORD` : The password for your Resy account
+
+run the `book-it` command with the required flags:
 
 
 ### Required Flags
@@ -41,6 +48,8 @@ To use book-it, run the `book-it` command with the required flags:
 1. Running the tool from the CLI
 
 ```shell
+export RESY_EMAIL="..."
+export RESY_PASSWORD="..."
 # Book an indoor reservation at UVA Next door (ID 50830) in NYC 
 # for July 15, 2023 any time from 10-11PM (spread of 30min from 10:30)
 book-it -v 50830 -d 07/15/23 -t 10:30PM -s 1800 -p 4 --include-types Indoor 
