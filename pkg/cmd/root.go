@@ -34,7 +34,7 @@ func init() {
 
 }
 
-func parseArgs() (venueID int, partySize int, date time.Time, spread time.Duration, excludeType []string, err error) {
+func parseArgs() (venueID int, partySize int, date time.Time, spread time.Duration, includeTypes []string, err error) {
 	if args.venueID != nil && *args.venueID != -1 {
 		venueID = *args.venueID
 	}
@@ -43,6 +43,14 @@ func parseArgs() (venueID int, partySize int, date time.Time, spread time.Durati
 	}
 	if args.partySize != nil && *args.partySize != -1 {
 		partySize = *args.partySize
+	}
+
+	if args.timeSpread != nil {
+		spread = time.Duration(*args.timeSpread) * time.Second
+	}
+
+	if args.types != nil {
+		includeTypes = *args.types
 	}
 	return
 }
