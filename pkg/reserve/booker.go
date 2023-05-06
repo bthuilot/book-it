@@ -17,11 +17,6 @@ type booker struct {
 	client resy.APIClient
 }
 
-func setHour(date time.Time, hour int) time.Time {
-	year, month, day := date.Date()
-	return time.Date(year, month, day, hour, 0, 0, 0, date.Location())
-}
-
 func (r booker) Book(venueID int, partySize int, date time.Time, spread time.Duration, includeTypes ...string) (resy.ReservationSlot, error) {
 	logrus.Infof("booking reservation for venue %d on %s", venueID, date)
 	venue, err := r.client.GetVenue(venueID)
@@ -80,7 +75,16 @@ func (r booker) bookReservation(partySize int, day time.Time, configToken string
 	if err != nil {
 		return false, err
 	}
-	res, err := r.client.BookReservation(details.BookToken.Value)
+
+	var paymentID int
+	for _, payment := range details.User.PaymentMethods {
+		if payment.IsDefault {
+			paymentID = payment.ID
+			break
+		}
+	}
+
+	res, err := r.client.BookReservation(details.BookToken.Value, details.Cancellation.Fee == nil, paymentID)
 	if err != nil {
 		return false, err
 	}

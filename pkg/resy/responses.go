@@ -111,8 +111,32 @@ type ReservationBookToken struct {
 	Value   string          `json:"value"`
 }
 
+type PaymentDetails struct {
+}
+
+type UserPayment struct {
+	PaymentMethods []UserPaymentMethod
+}
+
+type UserPaymentMethod struct {
+	ID        int    `json:"id"`
+	IsDefault bool   `json:"is_default"`
+	Type      string `json:"type"`
+}
+
+type CancellationFeeDetails struct {
+	Amount int `json:"amount"`
+}
+
+type CancellationDetails struct {
+	Fee *CancellationFeeDetails `json:"fee"`
+}
+
 type ReservationDetailsResponse struct {
-	BookToken ReservationBookToken `json:"book_token"`
+	BookToken    ReservationBookToken `json:"book_token"`
+	Payment      PaymentDetails       `json:"payment"`
+	User         UserPayment          `json:"user"`
+	Cancellation CancellationDetails  `json:"cancellation"`
 }
 
 type ReservationResponse struct {
