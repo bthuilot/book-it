@@ -39,10 +39,18 @@ func (c *client) refreshToken() (err error) {
 	return
 }
 
+// passwordLength is the max length allowed for a password.
+// when resy authenticates on their frontend only the first 25
+// characters are sent, security i guess...
+const passwordLength = 25
+
 func (c *client) passwordAuth() (authToken, error) {
 	data := url.Values{}
 	data.Set("email", c.email)
-	data.Set("password", c.password[:25])
+	if len(c.password) > passwordLength {
+		c.password = c.password[:passwordLength]
+	}
+	data.Set("password", c.password)
 	resp, err := apiRequest[authResponse]("POST", "3/auth/password", "", url.Values{}, data)
 	if err != nil {
 		return authToken{}, err

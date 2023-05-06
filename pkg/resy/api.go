@@ -21,7 +21,7 @@ type APIClient interface {
 	// GetReservationDetails will return the reservation details for a given reservation config token
 	GetReservationDetails(partySize int, day time.Time, configToken string) (v ReservationDetailsResponse, err error)
 	// BookReservation will book a reservation from its bookToken
-	BookReservation(bookToken string) (v ReservationResponse, err error)
+	BookReservation(bookToken string, sendPaymentMethod bool, paymentMethodID int) (v ReservationResponse, err error)
 }
 
 type client struct {
@@ -142,7 +142,7 @@ func (c *client) GetReservationDetails(partySize int, day time.Time, configToken
 	return
 }
 
-func (c *client) BookReservation(bookToken string) (v ReservationResponse, err error) {
+func (c *client) BookReservation(bookToken string, usePayment bool, paymentMethodID int) (v ReservationResponse, err error) {
 	if !c.authToken.isValid() {
 		logrus.Debug("auth token is invalid, refreshing")
 		if err = c.refreshToken(); err != nil {
@@ -153,8 +153,10 @@ func (c *client) BookReservation(bookToken string) (v ReservationResponse, err e
 
 	data := url.Values{}
 	data.Set("book_token", bookToken)
-	// TODO(reverse engineer how payment method is retrieved)
-	data.Set("struct_payment_method", "{\"id\": 9313397}")
+	if usePayment {
+		payment, _ := json.Marshal(map[string]int{"id": paymentMethodID})
+		data.Set("struct_payment_method", string(payment))
+	}
 	data.Set("source_id", "resy.com-venue-details")
 	v, err = apiRequest[ReservationResponse]("POST", "3/book", c.authToken.raw, url.Values{}, data)
 	return
