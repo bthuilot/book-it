@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/bthuilot/book-it/pkg/booker"
 	"github.com/bthuilot/book-it/pkg/config"
-	"github.com/bthuilot/book-it/pkg/reserve"
 	"github.com/bthuilot/book-it/pkg/resy"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"os"
 	"time"
 )
@@ -85,13 +86,15 @@ var rootCmd = &cobra.Command{
 			logrus.Fatalf("unable to parse args: %s", err)
 		}
 		logrus.Info("constructing Resy client")
-		client, err := resy.NewClient()
+		client, err := resy.NewClient(
+			resy.WithCredentialsOpts(viper.GetString("email"), viper.GetString("password")),
+		)
 		if err != nil {
 			logrus.Fatalf("unable to construct client: %s", err)
 		}
 
 		logrus.Info("constructing Resy booker client")
-		booker := reserve.NewBooker(client)
+		booker := booker.NewBooker(client)
 		reservation, err := booker.Book(venueID, partySize, date, spread, includeTypes...)
 		if err != nil {
 			logrus.Fatalf("unable to book reservation for venue %d on %s: %s", venueID, date, err)

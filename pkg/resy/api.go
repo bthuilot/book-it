@@ -4,160 +4,60 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
-	"time"
 )
 
-type APIClient interface {
-	// GetVenue will return a Venue by its id
-	GetVenue(id int) (v Venue, err error)
-	// FindReservation will find all reservations for a given day
-	FindReservation(venue Venue, day time.Time, partySize int) (found FindResponse, err error)
-	// GetReservationDetails will return the reservation details for a given reservation config token
-	GetReservationDetails(partySize int, day time.Time, configToken string) (v ReservationDetailsResponse, err error)
-	// BookReservation will book a reservation from its bookToken
-	BookReservation(bookToken string, sendPaymentMethod bool, paymentMethodID int) (v ReservationResponse, err error)
+func generateURL(endpoint string, queryParams url.Values) (string, error) {
+	parsedURL, err := url.Parse(apiURL)
+	if err != nil {
+		return "", err
+	}
+	parsedURL = parsedURL.JoinPath(endpoint)
+	parsedURL.RawQuery = queryParams.Encode()
+	return parsedURL.String(), nil
 }
 
-type client struct {
-	email     string
-	password  string
-	authToken authToken
-}
-
-const (
-	apiURL = "https://api.resy.com"
-
-	// apiKey is a token to be included with all API requests
-	// As far as I can tell this is a hard coded value found here
-	// https://resy.com/modules/app.2624781f09c5841e389c.js - Line 14
-	apiKey = "VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5"
-	// resultLimit
-	resultLimit = 20
-)
-
-func NewClient() (APIClient, error) {
-	c := &client{
-		email:    viper.GetString("email"),
-		password: viper.GetString("password"),
-	}
-	err := c.refreshToken()
-	return c, err
-}
-
-func apiRequest[T any](method, endpoint, authToken string, queryParams, formParams url.Values) (resp T, err error) {
-	var (
-		httpReq *http.Request
-		httpRes *http.Response
-		body    []byte
-	)
-	fullURL := fmt.Sprintf("%s/%s", apiURL, endpoint)
-	if len(queryParams) > 0 {
-		fullURL = fmt.Sprintf("%s?%s", fullURL, queryParams.Encode())
-	}
-	if httpReq, err = http.NewRequest(method, fullURL, strings.NewReader(formParams.Encode())); err != nil {
+func generateRequest(method, url string, formBody url.Values, additionalHeaders map[string]string) (req *http.Request, err error) {
+	if req, err = http.NewRequest(method, url, strings.NewReader(formBody.Encode())); err != nil {
 		return
 	}
-	httpReq.Header.Add("Authorization", fmt.Sprintf("ResyAPI api_key=\"%s\"", apiKey))
-	httpReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	httpReq.Header.Add("Host", "api.resy.com")
-	httpReq.Header.Add("Origin", "https://widgets.resy.com")
-
-	if authToken != "" {
-		httpReq.Header.Add("X-Resy-Auth-Token", authToken)
-		httpReq.Header.Add("X-Resy-Universal-Auth", authToken)
-	}
-	logrus.Debugf("making '%s' API request to '%s'", method, fullURL)
-	headers, _ := json.Marshal(httpReq.Header)
-	logrus.Debugf("headers: %s", headers)
-	logrus.Debugf("body: %s", formParams.Encode())
-	if httpRes, err = http.DefaultClient.Do(httpReq); err != nil {
-		logrus.Debugf("error sending request: %s", err)
-		return
-	} else if httpRes.StatusCode != http.StatusOK && httpRes.StatusCode != http.StatusCreated {
-		b, _ := io.ReadAll(httpRes.Body)
-		logrus.Debugf("API endpoint returned %d not 200: %s", httpRes.StatusCode, string(b))
-		err = fmt.Errorf("non 200 status returned: %s", string(b))
-		return
+	req.Header.Add("Authorization", fmt.Sprintf("ResyAPI api_key=\"%s\"", apiKey))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Host", "api.resy.com")
+	req.Header.Add("Origin", "https://widgets.resy.com")
+	for k, v := range additionalHeaders {
+		req.Header.Add(k, v)
 	}
 
-	if body, err = io.ReadAll(httpRes.Body); err != nil {
-		logrus.Fatalf("unable to read body: %s", err)
-		return
-	}
-	logrus.Debugf("received response from API: %s", string(body))
-	err = json.Unmarshal(body, &resp)
-	logrus.Debugf("received response: %+v", resp)
 	return
 }
 
-func (c *client) GetVenue(id int) (v Venue, err error) {
-	data := url.Values{}
-	data.Set("id", strconv.Itoa(id))
-	v, err = apiRequest[Venue]("GET", "3/venue", "", data, url.Values{})
-	return
-}
+func apiRequest[T any](r *http.Request) (apiRes T, err error) {
+	log := logrus.WithFields(logrus.Fields{
+		"method":   r.Method,
+		"endpoint": r.URL.Path,
+	})
 
-func (c *client) FindReservation(venue Venue, day time.Time, partySize int) (found FindResponse, err error) {
-	if !c.authToken.isValid() {
-		logrus.Debug("auth token is invalid, refreshing")
-		if err = c.refreshToken(); err != nil {
-			err = fmt.Errorf("unbale to refresh auth token: %s", err)
-			return
+	log.Infof("sending request to API: %s", r.URL.String())
+	res, err := http.DefaultClient.Do(r)
+	if err != nil {
+		log.Errorf("error sending request: %s", err)
+		return
+	}
+
+	defer res.Body.Close()
+	switch res.StatusCode {
+	case http.StatusOK, http.StatusCreated:
+		if err = json.NewDecoder(res.Body).Decode(&apiRes); err != nil {
+			log.Errorf("error decoding response: %s", err)
 		}
+	default:
+		b, _ := io.ReadAll(res.Body)
+		log.Errorf("API endpoint returned %d not 200: %s", res.StatusCode, string(b))
+		err = fmt.Errorf("%w: non 200 status returned - '%s'", ErrAPI, string(b))
 	}
-
-	data := url.Values{}
-	data.Set("lat", fmt.Sprintf("%f", venue.Location.Lat))
-	data.Set("long", fmt.Sprintf("%f", venue.Location.Long))
-	data.Set("party_size", strconv.Itoa(partySize))
-	data.Set("day", day.Format("2006-01-02"))
-	data.Set("venue_id", strconv.Itoa(venue.IDs.Resy))
-	data.Set("limit", strconv.Itoa(resultLimit))
-
-	found, err = apiRequest[FindResponse]("GET", "4/find", c.authToken.raw, data, url.Values{})
-	return
-}
-
-func (c *client) GetReservationDetails(partySize int, day time.Time, configToken string) (v ReservationDetailsResponse, err error) {
-	if !c.authToken.isValid() {
-		logrus.Debug("auth token is invalid, refreshing")
-		if err = c.refreshToken(); err != nil {
-			err = fmt.Errorf("unbale to refresh auth token: %s", err)
-			return
-		}
-	}
-
-	data := url.Values{}
-	data.Set("party_size", strconv.Itoa(partySize))
-	data.Set("day", day.Format("2006-01-02"))
-	data.Set("config_id", configToken)
-
-	v, err = apiRequest[ReservationDetailsResponse]("GET", "3/details", c.authToken.raw, data, url.Values{})
-	return
-}
-
-func (c *client) BookReservation(bookToken string, usePayment bool, paymentMethodID int) (v ReservationResponse, err error) {
-	if !c.authToken.isValid() {
-		logrus.Debug("auth token is invalid, refreshing")
-		if err = c.refreshToken(); err != nil {
-			err = fmt.Errorf("unbale to refresh auth token: %s", err)
-			return
-		}
-	}
-
-	data := url.Values{}
-	data.Set("book_token", bookToken)
-	if usePayment {
-		payment, _ := json.Marshal(map[string]int{"id": paymentMethodID})
-		data.Set("struct_payment_method", string(payment))
-	}
-	data.Set("source_id", "resy.com-venue-details")
-	v, err = apiRequest[ReservationResponse]("POST", "3/book", c.authToken.raw, url.Values{}, data)
 	return
 }
