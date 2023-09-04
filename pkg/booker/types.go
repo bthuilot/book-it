@@ -1,4 +1,4 @@
-package reserve
+package booker
 
 import (
 	"time"
