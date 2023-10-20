@@ -53,7 +53,7 @@ func (r *booker) findApplicableSlots(venueSlots []resy.ReservationSlot, date tim
 			r.logger.Debugf("skipping reservation as type %s is not in include types", slot.Config.Type)
 			continue
 		} else if timeDiff > spread {
-			r.logger.Debugf("skipping reservation at %s, as diff of %d is greater than %d exists", slot.Date, timeDiff.Seconds(), spread.Seconds())
+			r.logger.Debugf("skipping reservation at %s, as diff of %f is greater than %f exists", slot.Date, timeDiff.Seconds(), spread.Seconds())
 			continue
 		}
 		slots = append(slots, slot)
@@ -64,6 +64,7 @@ func (r *booker) findApplicableSlots(venueSlots []resy.ReservationSlot, date tim
 func (r *booker) bookReservation(partySize int, day time.Time, configToken string) (bool, error) {
 	details, err := r.client.GetReservationDetails(partySize, day, configToken)
 	if err != nil {
+		logrus.Errorf("error while retrieving reservation details: %s", err)
 		return false, err
 	}
 
@@ -75,7 +76,7 @@ func (r *booker) bookReservation(partySize int, day time.Time, configToken strin
 		}
 	}
 
-	res, err := r.client.BookReservation(details.BookToken.Value, details.Cancellation.Fee != nil, paymentID)
+	res, err := r.client.BookReservation(details.BookToken.Value, true, paymentID)
 	if err != nil {
 		return false, err
 	}
